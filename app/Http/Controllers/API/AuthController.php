@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
+use function Laravel\Prompts\error;
+
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -53,6 +55,30 @@ class AuthController extends Controller
             return response()->json(["status" => 500, "message" => "Something went wrong!"], 500);
         }
     }
+
+        // * check credentials
+        public function checkCredentias(Request $request)
+        {
+            $payload = $request->validate([
+                "email" => "required|email",
+                "password" => "required"
+            ]);
+    
+            try {
+                $user = User::where("email", $payload["email"])->first();
+                if ($user) {
+                    // * Check password
+                    if (!Hash::check($payload["password"], $user->password)) {
+                        return response()->json(["status" => 401, "message" => "Invalid credentials."]);
+                    }
+                    return ["status" => 200, "message" => "Loggedin succssfully!"];
+                }
+                return response()->json(["status" => 401, "message" => "No account found with these credentials."]);
+            } catch (\Exception $err) {
+                Log::info("user_register_err =>" . $err->getMessage());
+                return response()->json(["status" => 500, "message" => "Something went wrong!", "error" => $err -> getMessage()], 500);
+            }
+        }
 
     public function logout(Request $request)
     {
